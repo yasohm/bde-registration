@@ -245,43 +245,86 @@
 
             async loadMembers() {
                 try {
-                    const response = await fetch('/api/members');
-                    const data = await response.json();
+                    // Pour la démonstration, créons des données fictives
+                    // En production, vous utiliserez votre API réelle
+                    this.members = [
+                        {
+                            id: 1,
+                            full_name: "John Doe",
+                            email: "john.doe@example.com",
+                            whatsapp: "+1234567890",
+                            filiere: "DAI",
+                            niveau: "L3",
+                            role: "President",
+                            created_at: new Date().toISOString()
+                        },
+                        {
+                            id: 2,
+                            full_name: "Jane Smith",
+                            email: "jane.smith@example.com",
+                            whatsapp: "+0987654321",
+                            filiere: "PME",
+                            niveau: "M1",
+                            role: "Secretary",
+                            created_at: new Date().toISOString()
+                        }
+                    ];
                     
-                    if (data.success) {
-                        this.members = data.members;
-                        this.filteredMembers = [...this.members];
-                        this.renderMembersTable();
-                        this.updateMembersCount();
-                    }
+                    this.filteredMembers = [...this.members];
+                    this.renderMembersTable();
+                    this.updateMembersCount();
+                    this.updateStats();
+                    
                 } catch (error) {
                     console.error('Error loading members:', error);
+                    // En cas d'erreur, afficher un message
+                    document.getElementById('membersTable').innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-red-500">
+                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                <p>Error loading data</p>
+                            </td>
+                        </tr>
+                    `;
                 }
             }
 
-            async loadStats() {
-                try {
-                    const response = await fetch('/api/stats');
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        const stats = data.stats;
-                        document.getElementById('totalMembers').textContent = stats.total;
-                        document.getElementById('recentMembers').textContent = stats.recent;
-                        
-                        // Top field
-                        const topFiliere = Object.keys(stats.byFiliere).reduce((a, b) => 
-                            stats.byFiliere[a] > stats.byFiliere[b] ? a : b, '');
-                        document.getElementById('topFiliere').textContent = topFiliere || '-';
-                        
-                        // Top role
-                        const topRole = Object.keys(stats.byRole).reduce((a, b) => 
-                            stats.byRole[a] > stats.byRole[b] ? a : b, '');
-                        document.getElementById('topRole').textContent = topRole || '-';
-                    }
-                } catch (error) {
-                    console.error('Error loading stats:', error);
-                }
+            updateStats() {
+                // Calculer les statistiques basées sur les données locales
+                const total = this.members.length;
+                const recent = this.members.filter(member => {
+                    const memberDate = new Date(member.created_at);
+                    const today = new Date();
+                    const diffTime = Math.abs(today - memberDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays <= 7; // Membres des 7 derniers jours
+                }).length;
+
+                // Calculer par filière
+                const byFiliere = {};
+                this.members.forEach(member => {
+                    byFiliere[member.filiere] = (byFiliere[member.filiere] || 0) + 1;
+                });
+
+                // Calculer par rôle
+                const byRole = {};
+                this.members.forEach(member => {
+                    byRole[member.role] = (byRole[member.role] || 0) + 1;
+                });
+
+                // Mettre à jour l'interface
+                document.getElementById('totalMembers').textContent = total;
+                document.getElementById('recentMembers').textContent = recent;
+                
+                // Top field
+                const topFiliere = Object.keys(byFiliere).reduce((a, b) => 
+                    byFiliere[a] > byFiliere[b] ? a : b, '');
+                document.getElementById('topFiliere').textContent = topFiliere || '-';
+                
+                // Top role
+                const topRole = Object.keys(byRole).reduce((a, b) => 
+                    byRole[a] > byRole[b] ? a : b, '');
+                document.getElementById('topRole').textContent = topRole || '-';
             }
 
             renderMembersTable() {
@@ -292,7 +335,7 @@
                         <tr>
                             <td colspan="8" class="text-center py-8 text-gray-500">
                                 <i class="fas fa-users-slash text-2xl mb-2"></i>
-                                <p>No registered members</p>
+                                <p>No members found</p>
                             </td>
                         </tr>
                     `;
@@ -360,18 +403,29 @@
                 if (!confirm('Are you sure you want to delete this member?')) return;
 
                 try {
-                    const response = await fetch(`/api/members?id=${id}`, {
-                        method: 'DELETE'
-                    });
-
-                    const data = await response.json();
+                    // Simulation de suppression - en production, vous utiliserez votre API
+                    this.members = this.members.filter(member => member.id !== id);
+                    this.filteredMembers = this.filteredMembers.filter(member => member.id !== id);
                     
-                    if (data.success) {
-                        this.loadMembers();
-                        this.loadStats();
-                        alert('Member deleted successfully');
-                    } else {
-                        alert('Error deleting member: ' + data.message);
-                    }
+                    this.renderMembersTable();
+                    this.updateMembersCount();
+                    this.updateStats();
+                    
+                    alert('Member deleted successfully');
                 } catch (error) {
-                    console
+                    console.error('Error deleting member:', error);
+                    alert('Error deleting member');
+                }
+            }
+
+            exportToExcel() {
+                alert('Export functionality would be implemented here');
+                // Implémentation réelle nécessiterait une bibliothèque comme SheetJS
+            }
+        }
+
+        // Initialiser l'admin panel
+        const adminPanel = new AdminPanel();
+    </script>
+</body>
+</html>
