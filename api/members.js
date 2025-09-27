@@ -1,64 +1,53 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// إنشاء عميل Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 export default async function handler(req, res) {
-  // Enable CORS
+  // السماح بـ CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // التعامل مع OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  if (req.method === 'GET') {
-    try {
-      // Get all members
-      const { data: members, error } = await supabase
+  try {
+    if (req.method === 'GET') {
+      // الحصول على جميع الأعضاء
+      const { data, error } = await supabase
         .from('members')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Database error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        console.error('Supabase error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'خطأ في جلب البيانات'
+        });
       }
 
-      // Format the data
-      const formattedMembers = members.map(member => ({
-        id: member.id,
-        full_name: member.full_name,
-        email: member.email,
-        whatsapp: member.whatsapp,
-        filiere: member.filiere,
-        niveau: member.niveau,
-        role: member.role,
-        registration_date: new Date(member.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      }));
-
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        members: formattedMembers
+        members: data
       });
 
-    } catch (error) {
-      console.error('Error fetching members:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  } else if (req.method === 'DELETE') {
-    try {
+    } else if (req.method === 'DELETE') {
+      // حذف عضو
       const { id } = req.query;
 
       if (!id) {
-        return res.status(400).json({ error: 'Member ID is required' });
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العضو مطلوب'
+        });
       }
 
       const { error } = await supabase
@@ -67,20 +56,30 @@ export default async function handler(req, res) {
         .eq('id', id);
 
       if (error) {
-        console.error('Database error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        console.error('Delete error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'خطأ في حذف العضو'
+        });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        message: 'Member deleted successfully'
+        message: 'تم حذف العضو بنجاح'
       });
 
-    } catch (error) {
-      console.error('Error deleting member:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      return res.status(405).json({
+        success: false,
+        message: 'Method not allowed'
+      });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (error) {
+    console.error('API error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في الخادم'
+    });
   }
 }
