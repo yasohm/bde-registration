@@ -1,8 +1,11 @@
 {
   "name": "bde-registration-system",
   "version": "1.0.0",
-  "description": "BDE Member Registration System",
+  "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
