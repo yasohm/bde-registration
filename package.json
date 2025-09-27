@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "BDE Member Registration System with Vercel and Supabase",
   "main": "index.html",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vercel dev",
     "build": "echo 'No build step required'",
@@ -10,9 +13,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0"
-  },
-  "devDependencies": {
-    "vercel": "^32.0.0"
   },
   "keywords": [
     "bde",
