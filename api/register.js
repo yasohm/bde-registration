@@ -1,77 +1,92 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// إنشاء عميل Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 export default async function handler(req, res) {
-  // Enable CORS
+  // السماح بـ CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // التعامل مع OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      success: false, 
+      message: 'Method not allowed' 
+    });
   }
 
   try {
-    const { fullName, email, whatsapp, filiere, niveau, role } = req.body;
+    const { full_name, email, whatsapp, filiere, niveau, role } = req.body;
 
-    // Validate required fields
-    if (!fullName || !email || !whatsapp || !filiere || !niveau || !role) {
-      return res.status(400).json({ error: 'All fields are required' });
+    // التحقق من البيانات المطلوبة
+    if (!full_name || !email || !whatsapp || !filiere || !niveau || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'جميع الحقول مطلوبة'
+      });
     }
 
-    // Validate email format
+    // التحقق من صحة البريد الإلكتروني
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        success: false,
+        message: 'البريد الإلكتروني غير صحيح'
+      });
     }
 
-    // Check if email already exists
-    const { data: existingMember, error: checkError } = await supabase
-      .from('members')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (existingMember) {
-      return res.status(409).json({ error: 'Email already registered' });
-    }
-
-    // Insert new member
+    // إدراج العضو الجديد
     const { data, error } = await supabase
       .from('members')
-      .insert([
-        {
-          full_name: fullName,
-          email: email,
-          whatsapp: whatsapp,
-          filiere: filiere,
-          niveau: niveau,
-          role: role
-        }
-      ])
+      .insert([{
+        full_name: full_name.trim(),
+        email: email.toLowerCase().trim(),
+        whatsapp: whatsapp.trim(),
+        filiere,
+        niveau,
+        role
+      }])
       .select();
 
     if (error) {
-      console.error('Database error:', error);
-      return res.status(500).json({ error: 'Database error' });
+      console.error('Supabase error:', error);
+      
+      // التحقق من خطأ البريد المكرر
+      if (error.code === '23505') {
+        return res.status(400).json({
+          success: false,
+          message: 'البريد الإلكتروني مسجل مسبقاً'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'خطأ في قاعدة البيانات'
+      });
     }
 
+    // إرسال رد النجاح
     res.status(200).json({
       success: true,
-      message: 'Member registered successfully',
-      memberId: data[0].id
+      message: 'تم التسجيل بنجاح! مرحباً بك في BDE',
+      member: data[0]
     });
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في الخادم'
+    });
   }
 }
