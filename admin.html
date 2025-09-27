@@ -30,7 +30,6 @@
             <p>Manage registered members and export data</p>
             <div class="admin-actions">
                 <button type="button" id="exportBtn" class="btn btn-success">📊 Export to Excel</button>
-                <button type="button" id="quickAddBtn" class="btn btn-primary">➕ Quick Add Member</button>
                 <button type="button" id="refreshBtn" class="btn btn-info">🔄 Refresh Data</button>
                 <button type="button" id="logoutBtn" class="btn btn-danger">🚪 Logout</button>
             </div>
@@ -51,16 +50,6 @@
             </div>
         </div>
 
-        <div id="quickAddSection" class="quick-add-section" style="display: none;">
-            <h2>➕ Quick Add Member</h2>
-            <p>Paste the registration data from WhatsApp or copy-paste here:</p>
-            <textarea id="quickAddTextarea" placeholder="Paste registration data here..."></textarea>
-            <div class="quick-add-actions">
-                <button type="button" id="parseAndAddBtn" class="btn btn-primary">📝 Parse & Add Member</button>
-                <button type="button" id="closeQuickAddBtn" class="btn btn-secondary">✖️ Close</button>
-            </div>
-        </div>
-
         <div class="members-section">
             <h2>👥 Registered Members</h2>
             <div class="search-bar">
@@ -70,6 +59,281 @@
         </div>
     </div>
 
-    <script src="admin-script.js"></script>
+    <script>
+        class BDEAdmin {
+            constructor() {
+                this.members = [];
+                this.adminPassword = 'BDE2024';
+                this.isLoggedIn = sessionStorage.getItem('adminLoggedIn') === 'true';
+                
+                this.initializeEventListeners();
+                this.checkLoginStatus();
+            }
+
+            initializeEventListeners() {
+                const loginForm = document.getElementById('loginForm');
+                const exportBtn = document.getElementById('exportBtn');
+                const refreshBtn = document.getElementById('refreshBtn');
+                const logoutBtn = document.getElementById('logoutBtn');
+                const searchInput = document.getElementById('searchInput');
+
+                if (loginForm) {
+                    loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+                }
+
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => this.exportToExcel());
+                }
+
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => this.loadData());
+                }
+
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => this.logout());
+                }
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => this.filterMembers());
+                }
+            }
+
+            checkLoginStatus() {
+                if (this.isLoggedIn) {
+                    this.showAdminPanel();
+                } else {
+                    this.showLoginForm();
+                }
+            }
+
+            handleLogin(e) {
+                e.preventDefault();
+                const password = document.getElementById('adminPassword').value;
+                const errorDiv = document.getElementById('loginError');
+
+                if (password === this.adminPassword) {
+                    this.isLoggedIn = true;
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    this.showAdminPanel();
+                    this.showNotification('Welcome to Admin Panel!', 'success');
+                } else {
+                    errorDiv.style.display = 'block';
+                    document.getElementById('adminPassword').value = '';
+                    setTimeout(() => {
+                        errorDiv.style.display = 'none';
+                    }, 3000);
+                }
+            }
+
+            showLoginForm() {
+                document.getElementById('loginContainer').style.display = 'flex';
+                document.getElementById('adminContainer').style.display = 'none';
+            }
+
+            showAdminPanel() {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('adminContainer').style.display = 'block';
+                this.loadData();
+            }
+
+            logout() {
+                this.isLoggedIn = false;
+                sessionStorage.removeItem('adminLoggedIn');
+                this.showLoginForm();
+                this.showNotification('Logged out successfully!', 'info');
+            }
+
+            async loadData() {
+                try {
+                    // Load members
+                    const membersResponse = await fetch('/api/members');
+                    const membersResult = await membersResponse.json();
+                    
+                    if (membersResult.success) {
+                        this.members = membersResult.members;
+                        this.displayMembers();
+                    }
+
+                    // Load stats
+                    const statsResponse = await fetch('/api/stats');
+                    const statsResult = await statsResponse.json();
+                    
+                    if (statsResult.success) {
+                        this.updateStats(statsResult.stats);
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    this.showNotification('Error loading data', 'error');
+                }
+            }
+
+            updateStats(stats) {
+                document.getElementById('totalMembers').textContent = stats.total;
+
+                const filiereStatsDiv = document.getElementById('filiereStats');
+                filiereStatsDiv.innerHTML = stats.filiere.map(item => 
+                    `${item.filiere}: ${item.count}`
+                ).join('<br>') || 'No data';
+
+                const niveauStatsDiv = document.getElementById('niveauStats');
+                niveauStatsDiv.innerHTML = stats.niveau.map(item => 
+                    `${item.niveau}: ${item.count}`
+                ).join('<br>') || 'No data';
+            }
+
+            displayMembers() {
+                const membersTable = document.getElementById('membersTable');
+                
+                if (this.members.length === 0) {
+                    membersTable.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                            <h3>📝 No members registered yet</h3>
+                            <p>Members will appear here once they register on the main page.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>WhatsApp</th>
+                                <th>Filière</th>
+                                <th>Niveau</th>
+                                <th>Role</th>
+                                <th>Registration Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.members.map(member => `
+                                <tr>
+                                    <td>${member.full_name}</td>
+                                    <td>${member.email}</td>
+                                    <td>${member.whatsapp}</td>
+                                    <td>${member.filiere}</td>
+                                    <td>${member.niveau}</td>
+                                    <td>${member.role}</td>
+                                    <td>${member.registration_date}</td>
+                                    <td>
+                                        <button onclick="bdeAdmin.removeMember(${member.id})" 
+                                                class="btn btn-warning">
+                                            🗑️ Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                membersTable.innerHTML = tableHTML;
+            }
+
+            filterMembers() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const rows = document.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+
+            async removeMember(id) {
+                if (confirm('Are you sure you want to remove this member? This action cannot be undone.')) {
+                    try {
+                        const response = await fetch(`/api/members?id=${id}`, {
+                            method: 'DELETE'
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.loadData();
+                            this.showNotification('Member removed successfully!', 'success');
+                        } else {
+                            this.showNotification(result.error || 'Error removing member', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error removing member:', error);
+                        this.showNotification('Error removing member', 'error');
+                    }
+                }
+            }
+
+            exportToExcel() {
+                if (this.members.length === 0) {
+                    this.showNotification('No members to export!', 'error');
+                    return;
+                }
+
+                try {
+                    const excelData = [
+                        ['Full Name', 'Email', 'WhatsApp', 'Filière', 'Niveau', 'Role', 'Registration Date']
+                    ];
+
+                    this.members.forEach(member => {
+                        excelData.push([
+                            member.full_name,
+                            member.email,
+                            member.whatsapp,
+                            member.filiere,
+                            member.niveau,
+                            member.role,
+                            member.registration_date
+                        ]);
+                    });
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+                    ws['!cols'] = [
+                        { width: 20 }, { width: 25 }, { width: 15 }, 
+                        { width: 10 }, { width: 10 }, { width: 15 }, { width: 18 }
+                    ];
+
+                    XLSX.utils.book_append_sheet(wb, ws, 'BDE Members');
+
+                    const currentDate = new Date().toISOString().split('T')[0];
+                    const filename = `BDE_Members_${currentDate}.xlsx`;
+
+                    XLSX.writeFile(wb, filename);
+                    this.showNotification('Excel file exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showNotification('Error exporting to Excel!', 'error');
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const existingNotifications = document.querySelectorAll('.notification');
+                existingNotifications.forEach(notification => notification.remove());
+
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the admin panel
+        let bdeAdmin;
+        document.addEventListener('DOMContentLoaded', () => {
+            bdeAdmin = new BDEAdmin();
+        });
+    </script>
 </body>
 </html>
