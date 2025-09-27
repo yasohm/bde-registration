@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDE Admin Panel</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1>🔐 Admin Access</h1>
+            <p>Enter password to access BDE Admin Panel</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Access Admin Panel</button>
+            </form>
+            <div id="loginError" class="error-message" style="display: none;">
+                <p>❌ Incorrect password. Please try again.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-container" id="adminContainer" style="display: none;">
+        <header class="admin-header">
+            <h1>👨‍💼 BDE Admin Panel</h1>
+            <p>Manage registered members and export data</p>
+            <div class="admin-actions">
+                <button type="button" id="exportBtn" class="btn btn-success">📊 Export to Excel</button>
+                <button type="button" id="quickAddBtn" class="btn btn-primary">➕ Quick Add Member</button>
+                <button type="button" id="refreshBtn" class="btn btn-info">🔄 Refresh Data</button>
+                <button type="button" id="logoutBtn" class="btn btn-danger">🚪 Logout</button>
+            </div>
+        </header>
+
+        <div class="stats-section">
+            <div class="stat-card">
+                <h3>📊 Total Members</h3>
+                <span id="totalMembers">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>🎓 By Filière</h3>
+                <div id="filiereStats"></div>
+            </div>
+            <div class="stat-card">
+                <h3>📚 By Niveau</h3>
+                <div id="niveauStats"></div>
+            </div>
+        </div>
+
+        <div id="quickAddSection" class="quick-add-section" style="display: none;">
+            <h2>➕ Quick Add Member</h2>
+            <p>Paste the registration data from WhatsApp or copy-paste here:</p>
+            <textarea id="quickAddTextarea" placeholder="Paste registration data here..."></textarea>
+            <div class="quick-add-actions">
+                <button type="button" id="parseAndAddBtn" class="btn btn-primary">📝 Parse & Add Member</button>
+                <button type="button" id="closeQuickAddBtn" class="btn btn-secondary">✖️ Close</button>
+            </div>
+        </div>
+
+        <div class="members-section">
+            <h2>👥 Registered Members</h2>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Search members by name, email, or filière...">
+            </div>
+            <div id="membersTable" class="table-container"></div>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>

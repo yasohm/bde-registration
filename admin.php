@@ -1,0 +1,336 @@
+<?php
+session_start();
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    // Show login form
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BDE Admin Login</title>
+        <link rel="stylesheet" href="admin-style.css">
+    </head>
+    <body>
+        <div class="login-container">
+            <div class="login-box">
+                <h1>🔐 Admin Access</h1>
+                <p>Enter password to access BDE Admin Panel</p>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Access Admin Panel</button>
+                </form>
+                <div id="loginError" class="error-message" style="display: none;">
+                    <p>❌ Incorrect password. Please try again.</p>
+                </div>
+            </div>
+        </div>
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const password = document.getElementById('adminPassword').value;
+                const errorDiv = document.getElementById('loginError');
+
+                try {
+                    const response = await fetch('api.php?action=admin_login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ password: password })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        errorDiv.style.display = 'block';
+                        document.getElementById('adminPassword').value = '';
+                        setTimeout(() => {
+                            errorDiv.style.display = 'none';
+                        }, 3000);
+                    }
+                } catch (error) {
+                    errorDiv.style.display = 'block';
+                }
+            });
+        </script>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// Admin is logged in, show admin panel
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDE Admin Panel</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>👨‍💼 BDE Admin Panel</h1>
+            <p>Manage registered members and export data</p>
+            <div class="admin-actions">
+                <button type="button" id="exportBtn" class="btn btn-success">📊 Export to Excel</button>
+                <button type="button" id="refreshBtn" class="btn btn-info">🔄 Refresh Data</button>
+                <button type="button" id="logoutBtn" class="btn btn-danger">🚪 Logout</button>
+            </div>
+        </header>
+
+        <div class="stats-section">
+            <div class="stat-card">
+                <h3>📊 Total Members</h3>
+                <span id="totalMembers">0</span>
+            </div>
+            <div class="stat-card">
+                <h3>🎓 By Filière</h3>
+                <div id="filiereStats"></div>
+            </div>
+            <div class="stat-card">
+                <h3>📚 By Niveau</h3>
+                <div id="niveauStats"></div>
+            </div>
+        </div>
+
+        <div class="members-section">
+            <h2>👥 Registered Members</h2>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Search members by name, email, or filière...">
+            </div>
+            <div id="membersTable" class="table-container"></div>
+        </div>
+    </div>
+
+    <script>
+        class BDEAdmin {
+            constructor() {
+                this.members = [];
+                this.initializeEventListeners();
+                this.loadData();
+            }
+
+            initializeEventListeners() {
+                const exportBtn = document.getElementById('exportBtn');
+                const refreshBtn = document.getElementById('refreshBtn');
+                const logoutBtn = document.getElementById('logoutBtn');
+                const searchInput = document.getElementById('searchInput');
+
+                exportBtn.addEventListener('click', () => this.exportToExcel());
+                refreshBtn.addEventListener('click', () => this.loadData());
+                logoutBtn.addEventListener('click', () => this.logout());
+                searchInput.addEventListener('input', () => this.filterMembers());
+            }
+
+            async loadData() {
+                try {
+                    // Load members
+                    const membersResponse = await fetch('api.php?action=get_members');
+                    const membersResult = await membersResponse.json();
+                    
+                    if (membersResult.success) {
+                        this.members = membersResult.members;
+                        this.displayMembers();
+                    }
+
+                    // Load stats
+                    const statsResponse = await fetch('api.php?action=get_stats');
+                    const statsResult = await statsResponse.json();
+                    
+                    if (statsResult.success) {
+                        this.updateStats(statsResult.stats);
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    this.showNotification('Error loading data', 'error');
+                }
+            }
+
+            updateStats(stats) {
+                document.getElementById('totalMembers').textContent = stats.total;
+
+                const filiereStatsDiv = document.getElementById('filiereStats');
+                filiereStatsDiv.innerHTML = stats.filiere.map(item => 
+                    `${item.filiere}: ${item.count}`
+                ).join('<br>') || 'No data';
+
+                const niveauStatsDiv = document.getElementById('niveauStats');
+                niveauStatsDiv.innerHTML = stats.niveau.map(item => 
+                    `${item.niveau}: ${item.count}`
+                ).join('<br>') || 'No data';
+            }
+
+            displayMembers() {
+                const membersTable = document.getElementById('membersTable');
+                
+                if (this.members.length === 0) {
+                    membersTable.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                            <h3>📝 No members registered yet</h3>
+                            <p>Members will appear here once they register on the main page.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>WhatsApp</th>
+                                <th>Filière</th>
+                                <th>Niveau</th>
+                                <th>Role</th>
+                                <th>Registration Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.members.map(member => `
+                                <tr>
+                                    <td>${member.full_name}</td>
+                                    <td>${member.email}</td>
+                                    <td>${member.whatsapp}</td>
+                                    <td>${member.filiere}</td>
+                                    <td>${member.niveau}</td>
+                                    <td>${member.role}</td>
+                                    <td>${member.registration_date}</td>
+                                    <td>
+                                        <button onclick="bdeAdmin.removeMember(${member.id})" 
+                                                class="btn btn-warning">
+                                            🗑️ Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                membersTable.innerHTML = tableHTML;
+            }
+
+            filterMembers() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const rows = document.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+
+            async removeMember(id) {
+                if (confirm('Are you sure you want to remove this member? This action cannot be undone.')) {
+                    try {
+                        const response = await fetch(`api.php?action=delete_member&id=${id}`, {
+                            method: 'DELETE'
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.loadData();
+                            this.showNotification('Member removed successfully!', 'success');
+                        } else {
+                            this.showNotification(result.error || 'Error removing member', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error removing member:', error);
+                        this.showNotification('Error removing member', 'error');
+                    }
+                }
+            }
+
+            exportToExcel() {
+                if (this.members.length === 0) {
+                    this.showNotification('No members to export!', 'error');
+                    return;
+                }
+
+                try {
+                    const excelData = [
+                        ['Full Name', 'Email', 'WhatsApp', 'Filière', 'Niveau', 'Role', 'Registration Date']
+                    ];
+
+                    this.members.forEach(member => {
+                        excelData.push([
+                            member.full_name,
+                            member.email,
+                            member.whatsapp,
+                            member.filiere,
+                            member.niveau,
+                            member.role,
+                            member.registration_date
+                        ]);
+                    });
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+                    ws['!cols'] = [
+                        { width: 20 }, { width: 25 }, { width: 15 }, 
+                        { width: 10 }, { width: 10 }, { width: 15 }, { width: 18 }
+                    ];
+
+                    XLSX.utils.book_append_sheet(wb, ws, 'BDE Members');
+
+                    const currentDate = new Date().toISOString().split('T')[0];
+                    const filename = `BDE_Members_${currentDate}.xlsx`;
+
+                    XLSX.writeFile(wb, filename);
+                    this.showNotification('Excel file exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showNotification('Error exporting to Excel!', 'error');
+                }
+            }
+
+            logout() {
+                fetch('api.php?action=logout', { method: 'POST' })
+                    .then(() => {
+                        window.location.reload();
+                    });
+            }
+
+            showNotification(message, type = 'info') {
+                const existingNotifications = document.querySelectorAll('.notification');
+                existingNotifications.forEach(notification => notification.remove());
+
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the admin panel
+        let bdeAdmin;
+        document.addEventListener('DOMContentLoaded', () => {
+            bdeAdmin = new BDEAdmin();
+        });
+    </script>
+</body>
+</html>
