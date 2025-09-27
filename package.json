@@ -1,26 +1,8 @@
 {
   "name": "bde-registration-system",
   "version": "1.0.0",
-  "description": "BDE Member Registration System with Vercel and Supabase",
-  "main": "index.html",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step required'",
-    "deploy": "vercel --prod"
-  },
+  "description": "BDE Member Registration System",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0"
-  },
-  "keywords": [
-    "bde",
-    "registration",
-    "members",
-    "vercel",
-    "supabase"
-  ],
-  "author": "BDE Team",
-  "license": "MIT"
+  }
 }
