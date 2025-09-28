@@ -1,18 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// إنشاء عميل Supabase
+// Create Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
 export default async function handler(req, res) {
-  // السماح بـ CORS
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // التعامل مع OPTIONS request
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // الحصول على جميع الأعضاء
+      // Get all members
       const { data, error } = await supabase
         .from('members')
         .select('*')
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         console.error('Supabase error:', error);
         return res.status(500).json({
           success: false,
-          message: 'خطأ في جلب البيانات'
+          message: 'Error fetching data'
         });
       }
 
@@ -40,13 +40,13 @@ export default async function handler(req, res) {
       });
 
     } else if (req.method === 'DELETE') {
-      // حذف عضو
+      // Delete member
       const { id } = req.query;
 
       if (!id) {
         return res.status(400).json({
           success: false,
-          message: 'معرف العضو مطلوب'
+          message: 'Member ID required'
         });
       }
 
@@ -59,13 +59,13 @@ export default async function handler(req, res) {
         console.error('Delete error:', error);
         return res.status(500).json({
           success: false,
-          message: 'خطأ في حذف العضو'
+          message: 'Error deleting member'
         });
       }
 
       return res.status(200).json({
         success: true,
-        message: 'تم حذف العضو بنجاح'
+        message: 'Member deleted successfully'
       });
 
     } else {
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     console.error('API error:', error);
     res.status(500).json({
       success: false,
-      message: 'خطأ في الخادم'
+      message: 'Server error'
     });
   }
 }

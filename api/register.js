@@ -1,18 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// إنشاء عميل Supabase
+// Create Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
 export default async function handler(req, res) {
-  // السماح بـ CORS
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // التعامل مع OPTIONS request
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -28,24 +28,24 @@ export default async function handler(req, res) {
   try {
     const { full_name, email, whatsapp, filiere, niveau, role } = req.body;
 
-    // التحقق من البيانات المطلوبة
+    // Validate required fields
     if (!full_name || !email || !whatsapp || !filiere || !niveau || !role) {
       return res.status(400).json({
         success: false,
-        message: 'جميع الحقول مطلوبة'
+        message: 'All fields are required'
       });
     }
 
-    // التحقق من صحة البريد الإلكتروني
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        message: 'البريد الإلكتروني غير صحيح'
+        message: 'Invalid email address'
       });
     }
 
-    // إدراج العضو الجديد
+    // Insert new member
     const { data, error } = await supabase
       .from('members')
       .insert([{
@@ -61,24 +61,24 @@ export default async function handler(req, res) {
     if (error) {
       console.error('Supabase error:', error);
       
-      // التحقق من خطأ البريد المكرر
+      // Check for duplicate email error
       if (error.code === '23505') {
         return res.status(400).json({
           success: false,
-          message: 'البريد الإلكتروني مسجل مسبقاً'
+          message: 'Email already registered'
         });
       }
       
       return res.status(500).json({
         success: false,
-        message: 'خطأ في قاعدة البيانات'
+        message: 'Database error'
       });
     }
 
-    // إرسال رد النجاح
+    // Send success response
     res.status(200).json({
       success: true,
-      message: 'تم التسجيل بنجاح! مرحباً بك في BDE',
+      message: 'Registration successful! Welcome to BDE',
       member: data[0]
     });
 
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'خطأ في الخادم'
+      message: 'Server error'
     });
   }
 }

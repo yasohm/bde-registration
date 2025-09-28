@@ -179,6 +179,21 @@
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData.entries());
 
+                // Basic client-side validation
+                if (!data.full_name || !data.email || !data.whatsapp || !data.filiere || !data.niveau || !data.role) {
+                    errorText.textContent = 'All fields are required';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(data.email)) {
+                    errorText.textContent = 'Please enter a valid email address';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: {
@@ -210,7 +225,7 @@
 
             } catch (error) {
                 console.error('Registration error:', error);
-                errorText.textContent = 'Connection error with server';
+                errorText.textContent = 'Connection error with server. Please check your internet connection and try again.';
                 errorMsg.classList.remove('hidden');
             } finally {
                 // Reset button state

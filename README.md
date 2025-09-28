@@ -28,28 +28,47 @@ A modern, user-friendly web application for BDE (Bureau des Étudiants) member r
 
 ## 🚀 Quick Start
 
+### For Development (Local Testing)
+1. Install dependencies: `npm install`
+2. Start development server: `npm run dev`
+3. Open `http://localhost:3000` in your browser
+4. Test registration and admin panel functionality
+
+### For Production Deployment
+1. Follow the `VERCEL_SETUP.md` guide
+2. Set up Supabase database using `supabase-setup.sql`
+3. Deploy to Vercel with environment variables
+4. Your system will be live and ready for BDE members!
+
 ### For Members (Registration)
-1. Open `index.html` in your browser
+1. Visit your deployed registration page
 2. Fill out the registration form
-3. Click "Register Me"
+3. Click "Join Now"
 4. Success! You're now a BDE member
 
 ### For Admins (Management)
-1. Open `admin.html` in your browser
+1. Visit your deployed admin panel
 2. Enter password: `BDE2024`
 3. Access full admin panel with all management features
 
 ## 📁 File Structure
 
 ```
-page_register_membres/
-├── index.html          # Main registration page
-├── script.js           # Registration functionality
-├── style.css           # Main page styling
-├── admin.html          # Admin panel page
-├── admin-script.js     # Admin functionality
-├── admin-style.css     # Admin panel styling
-└── README.md           # This file
+bde-registration-system/
+├── index.html              # Main registration page
+├── admin.html              # Admin panel page
+├── api/
+│   ├── register.js         # Registration API endpoint
+│   ├── members.js          # Members management API
+│   └── stats.js            # Statistics API endpoint
+├── package.json            # Dependencies and scripts
+├── vercel.json             # Vercel deployment configuration
+├── dev-server.js           # Development server (local testing)
+├── supabase-setup.sql      # Database setup script
+├── env.example             # Environment variables template
+├── README.md               # This file
+├── VERCEL_SETUP.md         # Production deployment guide
+└── QUICK_SETUP.md          # Local development guide
 ```
 
 ## 🌐 GitHub Pages Deployment

@@ -21,18 +21,19 @@
 3. Name it: `members`
 4. Add these columns:
 
-| Column Name | Type | Default Value | Nullable |
-|-------------|------|---------------|----------|
-| id | int8 | auto-increment | No |
-| full_name | text | - | No |
-| email | text | - | No |
-| whatsapp | text | - | No |
-| filiere | text | - | No |
-| niveau | text | - | No |
-| role | text | - | No |
-| created_at | timestamptz | now() | No |
+| Column Name | Type | Default Value | Nullable | Primary Key |
+|-------------|------|---------------|----------|-------------|
+| id | int8 | auto-increment | No | Yes |
+| full_name | text | - | No | No |
+| email | text | - | No | No |
+| whatsapp | text | - | No | No |
+| filiere | text | - | No | No |
+| niveau | text | - | No | No |
+| role | text | - | No | No |
+| created_at | timestamptz | now() | No | No |
 
-5. Click **"Save"**
+5. **Important:** Make sure to set `email` as **UNIQUE** to prevent duplicate registrations
+6. Click **"Save"**
 
 ### 1.3 Get API Keys
 1. Go to **"Settings"** → **"API"**

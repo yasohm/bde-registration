@@ -1,18 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// إنشاء عميل Supabase
+// Create Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
 export default async function handler(req, res) {
-  // السماح بـ CORS
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // التعامل مع OPTIONS request
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // الحصول على جميع الأعضاء لحساب الإحصائيات
+    // Get all members for statistics calculation
     const { data, error } = await supabase
       .from('members')
       .select('filiere, niveau, role, created_at');
@@ -35,11 +35,11 @@ export default async function handler(req, res) {
       console.error('Stats error:', error);
       return res.status(500).json({
         success: false,
-        message: 'خطأ في جلب الإحصائيات'
+        message: 'Error fetching statistics'
       });
     }
 
-    // حساب الإحصائيات
+    // Calculate statistics
     const stats = {
       total: data.length,
       byFiliere: {},
@@ -48,21 +48,21 @@ export default async function handler(req, res) {
       recent: 0
     };
 
-    // حساب التسجيلات الحديثة (آخر 7 أيام)
+    // Calculate recent registrations (last 7 days)
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
     data.forEach(member => {
-      // حسب الفيلير
+      // By filiere
       stats.byFiliere[member.filiere] = (stats.byFiliere[member.filiere] || 0) + 1;
       
-      // حسب النيفو
+      // By niveau
       stats.byNiveau[member.niveau] = (stats.byNiveau[member.niveau] || 0) + 1;
       
-      // حسب الرول
+      // By role
       stats.byRole[member.role] = (stats.byRole[member.role] || 0) + 1;
       
-      // التسجيلات الحديثة
+      // Recent registrations
       const memberDate = new Date(member.created_at);
       if (memberDate >= weekAgo) {
         stats.recent++;
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     console.error('Stats calculation error:', error);
     res.status(500).json({
       success: false,
-      message: 'خطأ في حساب الإحصائيات'
+      message: 'Error calculating statistics'
     });
   }
 }
