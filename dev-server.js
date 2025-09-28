@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const XLSX = require('xlsx');
 
 const app = express();
 const PORT = 3000;
@@ -155,6 +156,65 @@ app.get('/api/stats', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error calculating statistics'
+    });
+  }
+});
+
+app.get('/api/export-excel', (req, res) => {
+  try {
+    // Prepare data for Excel export
+    const excelData = members.map(member => ({
+      'Full Name': member.full_name,
+      'Email': member.email,
+      'WhatsApp': member.whatsapp,
+      'Field (Filiere)': member.filiere,
+      'Academic Level': member.niveau,
+      'Role': member.role,
+      'Registration Date': new Date(member.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }));
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    const columnWidths = [
+      { wch: 20 }, // Full Name
+      { wch: 25 }, // Email
+      { wch: 15 }, // WhatsApp
+      { wch: 12 }, // Field
+      { wch: 15 }, // Level
+      { wch: 20 }, // Role
+      { wch: 25 }  // Registration Date
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'BDE Members');
+
+    // Generate Excel file buffer
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set response headers for file download
+    const fileName = `BDE_Members_${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+
+    // Send the Excel file
+    res.send(excelBuffer);
+
+  } catch (error) {
+    console.error('Excel export error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting to Excel'
     });
   }
 });

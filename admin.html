@@ -443,9 +443,59 @@
                 }
             }
 
-            exportToExcel() {
-                alert('Export functionality would be implemented here');
-                // Implémentation réelle nécessiterait une bibliothèque comme SheetJS
+            async exportToExcel() {
+                try {
+                    // Show loading state
+                    const exportBtn = document.getElementById('exportBtn');
+                    const originalText = exportBtn.innerHTML;
+                    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+                    exportBtn.disabled = true;
+
+                    // Make request to export endpoint
+                    const response = await fetch('/api/export-excel');
+                    
+                    if (response.ok) {
+                        // Get the blob from response
+                        const blob = await response.blob();
+                        
+                        // Create download link
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        
+                        // Get filename from response headers or use default
+                        const contentDisposition = response.headers.get('content-disposition');
+                        let filename = 'BDE_Members.xlsx';
+                        if (contentDisposition) {
+                            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                            if (filenameMatch) {
+                                filename = filenameMatch[1];
+                            }
+                        }
+                        
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        // Clean up
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        // Show success message
+                        alert('Excel file downloaded successfully!');
+                    } else {
+                        throw new Error('Export failed');
+                    }
+                } catch (error) {
+                    console.error('Export error:', error);
+                    alert('Error exporting to Excel. Please try again.');
+                } finally {
+                    // Reset button state
+                    const exportBtn = document.getElementById('exportBtn');
+                    exportBtn.innerHTML = '<i class="fas fa-file-excel mr-2"></i>Export Excel';
+                    exportBtn.disabled = false;
+                }
             }
         }
 
